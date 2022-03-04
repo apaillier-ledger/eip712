@@ -10,7 +10,7 @@ OBJ		= $(SRC:.c=.o)
 
 CFLAGS	= -Wall -Wextra
 
-DEBUG	:= 0
+DEBUG	:= 1
 
 ifeq ($(DEBUG), 1)
 CFLAGS	+= -O0 -g3
