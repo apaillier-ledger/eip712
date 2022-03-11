@@ -12,19 +12,24 @@ INS_STRUCT_IMPL = 0x1a
 P1_FULL         = 0x00
 P1_PARTIAL      = 0xFF
 P2_NAME         = 0x00
+P2_ARRAY        = 0x0F
 P2_FIELD        = 0xFF
+
+class ArrayType(IntEnum):
+    dynamic = 0
+    fixed_size = auto()
 
 class Type(IntEnum):
     custom = 0
     # native types
-    solidity_int = auto()
-    solidity_uint = auto()
-    solidity_address = auto()
-    solidity_bool = auto()
-    solidity_string = auto()
-    solidity_byte = auto()
-    solidity_bytes_fix = auto()
-    solidity_bytes_dyn = auto()
+    sol_int = auto()
+    sol_uint = auto()
+    sol_address = auto()
+    sol_bool = auto()
+    sol_string = auto()
+    sol_byte = auto()
+    sol_bytes_fix = auto()
+    sol_bytes_dyn = auto()
 
 
 # Write an APDU with given parameters, computes LC automatically from the data
@@ -32,21 +37,41 @@ def send_apdu(ins, p1, p2, data):
     sys.stdout.buffer.write(bytes([CLA, ins, p1, p2, len(data)]))
     sys.stdout.buffer.write(data)
 
+
 def send_struct_def_name(name):
     data = bytearray()
     for char in name:
         data.append(ord(char))
     send_apdu(INS_STRUCT_DEF, P1_FULL, P2_NAME, data)
 
-def send_struct_def_field(typename, keyname):
-    field_type = None
-    field_typesize = 0
-    field_is_array = False
 
-    # check if array type
-    if typename.endswith("[]"):
-        typename = typename[:-2]
-        field_is_array = True
+# From a string typename, extract the type and all the array depth
+# Input  = "uint8[2][][4]"
+# Output = ('uint8', [2, None, 4])
+def get_array_levels(typename):
+    array_levels = list()
+    regex = re.compile("(.*)\[([0-9]*)\]$")
+
+    while True:
+        result = regex.search(typename)
+        if not result:
+            break
+        typename = result.group(1)
+
+        level_size = result.group(2)
+        if len(level_size) == 0:
+            level_size = None
+        else:
+            level_size = int(level_size)
+        array_levels.insert(0, level_size)
+    return (typename, array_levels)
+
+
+def send_struct_def_field(typename, keyname):
+    type_enum = None
+    typesize = 0
+
+    (typename, array_levels) = get_array_levels(typename)
 
     # extract type size with regex
     int_regex = re.compile("^(u?int)([0-9]*)$")
@@ -56,39 +81,48 @@ def send_struct_def_field(typename, keyname):
 
     if int_result:
         if int_result.group(1) == "int":
-            field_type = Type.solidity_int
+            type_enum = Type.sol_int
         else:
-            field_type = Type.solidity_uint
-        field_typesize = int(int(int_result.group(2)) / 8) # bits -> bytes
+            type_enum = Type.sol_uint
+        typesize = int(int(int_result.group(2)) / 8) # bits -> bytes
     elif bytes_f_result:
-        field_type = Type.solidity_bytes_fix
-        field_typesize = int(bytes_f_result.group(2))
+        type_enum = Type.sol_bytes_fix
+        typesize = int(bytes_f_result.group(2))
     elif typename == "address":
-        field_type = Type.solidity_address
+        type_enum = Type.sol_address
     elif typename == "bool":
-        field_type == Type.solidity_bool
+        type_enum == Type.sol_bool
     elif typename == "string":
-        field_type = Type.solidity_string
+        type_enum = Type.sol_string
     elif typename == "byte":
-        field_type = Type.solidity_byte
+        type_enum = Type.sol_byte
     elif typename == "bytes":
-        field_type = Type.solidity_bytes_dyn
+        type_enum = Type.sol_bytes_dyn
     else:
-        field_type = Type.custom
+        type_enum = Type.custom
 
     data = bytearray()
-    data.append((field_is_array << 7) | ((field_typesize > 0) << 6) | field_type) # typedesc
-    if field_type == Type.custom:
+    data.append(((len(array_levels) > 0) << 7) | ((typesize > 0) << 6) | type_enum) # typedesc
+    if type_enum == Type.custom:
         data.append(len(typename))
         for char in typename:
             data.append(ord(char))
-    if field_typesize > 0:
-        data.append(field_typesize)
+    if typesize > 0:
+        data.append(typesize)
+    if len(array_levels) > 0:
+        data.append(len(array_levels))
+        for lvl in array_levels:
+            if lvl == None:
+                data.append(ArrayType.dynamic)
+            else:
+                data.append(ArrayType.fixed_size)
+                data.append(lvl)
     data.append(len(keyname))
     for char in keyname:
         data.append(ord(char))
 
     send_apdu(INS_STRUCT_DEF, P1_FULL, P2_FIELD, data)
+    return (type_enum, array_levels)
 
 
 def send_struct_impl_name(structname):
@@ -107,13 +141,18 @@ def send_struct_impl_field(struct_def, key, value):
 def main(input_file):
     with open(input_file, "r") as data:
         data_json = json.load(data)
+        domain_typename = "EIP712Domain"
+        message_typename = data_json["primaryType"]
+        types = data_json["types"]
+        domain = data_json["domain"]
+        message = data_json["message"]
 
         # send types definition
-        types = data_json["types"]
         for key in types.keys():
             send_struct_def_name(key)
             for field in types[key]:
-                send_struct_def_field(field["type"], field["name"])
+                ret = send_struct_def_field(field["type"], field["name"])
+                (field["enum"], field["array_levels"]) = ret
 
         # send domain implementation
         send_struct_impl_name("EIP712Domain")
@@ -127,4 +166,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         main(sys.argv[1])
     else:
-        main("data.json")
+        print("Usage: %s JSON_FILE" % (sys.argv[0]))
+        quit(1)
