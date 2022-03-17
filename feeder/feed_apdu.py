@@ -66,48 +66,70 @@ def get_array_levels(typename):
         array_levels.insert(0, level_size)
     return (typename, array_levels)
 
+def get_typesize(typename):
+    regex = re.compile("^(\w+?)(\d*)$")
+    result = regex.search(typename)
+    typename = result.group(1)
+    typesize = result.group(2)
+    if len(typesize) == 0:
+        typesize = None
+    else:
+        typesize = int(typesize)
+    return (typename, typesize)
+
+
+def parse_int(typesize):
+    return (Type.sol_int, int(typesize / 8))
+
+def parse_uint(typesize):
+    return (Type.sol_uint, int(typesize / 8))
+
+def parse_address(typesize):
+    return (Type.sol_string, None)
+
+def parse_bool(typesize):
+    return (Type.sol_bool, None)
+
+def parse_string(typesize):
+    return (Type.sol_string, None)
+
+def parse_byte(typesize):
+    return (Type.sol_byte, None)
+
+def parse_bytes(typesize):
+    if typesize != None:
+        return (Type.sol_bytes_dyn, None)
+    return (Type.sol_bytes_fix, typesize)
+
+# set functions for each type
+parsing_type_functions = {};
+parsing_type_functions["int"] = parse_int
+parsing_type_functions["uint"] = parse_uint
+parsing_type_functions["address"] = parse_address
+parsing_type_functions["bool"] = parse_bool
+parsing_type_functions["string"] = parse_string
+parsing_type_functions["byte"] = parse_byte
+parsing_type_functions["bytes"] = parse_bytes
 
 def send_struct_def_field(typename, keyname):
     type_enum = None
-    typesize = 0
 
     (typename, array_levels) = get_array_levels(typename)
+    (typename, typesize) = get_typesize(typename)
 
-    # extract type size with regex
-    int_regex = re.compile("^(u?int)([0-9]*)$")
-    bytes_f_regex = re.compile("^(bytes)([0-9]+)$")
-    int_result = int_regex.search(typename)
-    bytes_f_result = bytes_f_regex.search(typename)
-
-    if int_result:
-        if int_result.group(1) == "int":
-            type_enum = Type.sol_int
-        else:
-            type_enum = Type.sol_uint
-        typesize = int(int(int_result.group(2)) / 8) # bits -> bytes
-    elif bytes_f_result:
-        type_enum = Type.sol_bytes_fix
-        typesize = int(bytes_f_result.group(2))
-    elif typename == "address":
-        type_enum = Type.sol_address
-    elif typename == "bool":
-        type_enum == Type.sol_bool
-    elif typename == "string":
-        type_enum = Type.sol_string
-    elif typename == "byte":
-        type_enum = Type.sol_byte
-    elif typename == "bytes":
-        type_enum = Type.sol_bytes_dyn
+    if typename in parsing_type_functions.keys():
+        (type_enum, typesize) = parsing_type_functions[typename](typesize)
     else:
         type_enum = Type.custom
+        typesize = None
 
     data = bytearray()
-    data.append(((len(array_levels) > 0) << 7) | ((typesize > 0) << 6) | type_enum) # typedesc
+    data.append(((len(array_levels) > 0) << 7) | ((typesize != None) << 6) | type_enum) # typedesc
     if type_enum == Type.custom:
         data.append(len(typename))
         for char in typename:
             data.append(ord(char))
-    if typesize > 0:
+    if typesize != None:
         data.append(typesize)
     if len(array_levels) > 0:
         data.append(len(array_levels))
