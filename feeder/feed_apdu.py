@@ -242,15 +242,21 @@ encoding_functions[Type.sol_bytes_dyn] = encode_bytes_dyn
 
 
 def send_struct_impl_field(value, field):
+    data_w_length = bytearray()
+
     # Something wrong happened if this triggers
     if isinstance(value, list) or (field["enum"] == Type.custom):
         breakpoint()
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
-    while len(data) > 0xff:
-        send_apdu(INS_STRUCT_IMPL, P1_PARTIAL, P2_FIELD, data[:0xff])
-        data = data[0xff:]
-    send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data)
+    # Add a 16-bit integer with the value's byte length
+    data_w_length.append((len(data) & 0xff000) >> 8)
+    data_w_length.append(len(data) & 0xff)
+    data_w_length += data
+    while len(data_w_length) > 0xff:
+        send_apdu(INS_STRUCT_IMPL, P1_PARTIAL, P2_FIELD, data_w_length[:0xff])
+        data_w_length = data_w_length[0xff:]
+    send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data_w_length)
 
 
 
