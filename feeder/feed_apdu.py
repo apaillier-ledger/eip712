@@ -9,7 +9,7 @@ from enum import IntEnum, auto
 CLA             = 0xe0
 INS_STRUCT_DEF  = 0x18
 INS_STRUCT_IMPL = 0x1a
-P1_FULL         = 0x00
+P1_COMPLETE     = 0x00
 P1_PARTIAL      = 0xFF
 P2_NAME         = 0x00
 P2_ARRAY        = 0x0F
@@ -42,7 +42,7 @@ def send_struct_def_name(name):
     data = bytearray()
     for char in name:
         data.append(ord(char))
-    send_apdu(INS_STRUCT_DEF, P1_FULL, P2_NAME, data)
+    send_apdu(INS_STRUCT_DEF, P1_COMPLETE, P2_NAME, data)
 
 
 # From a string typename, extract the type and all the array depth
@@ -150,7 +150,7 @@ def send_struct_def_field(typename, keyname):
     for char in keyname:
         data.append(ord(char))
 
-    send_apdu(INS_STRUCT_DEF, P1_FULL, P2_FIELD, data)
+    send_apdu(INS_STRUCT_DEF, P1_COMPLETE, P2_FIELD, data)
     return (typename, type_enum, typesize, array_lvls)
 
 
@@ -159,14 +159,14 @@ def send_struct_impl_name(structname):
     data = bytearray()
     for char in structname:
         data.append(ord(char))
-    send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_NAME, data)
+    send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_NAME, data)
 
 
 
 def send_struct_impl_array(size):
     data = bytearray()
     data.append(size)
-    send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_ARRAY, data)
+    send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_ARRAY, data)
 
 
 
@@ -247,7 +247,7 @@ def send_struct_impl_field(value, field):
         breakpoint()
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
-    send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_FIELD, data)
+    send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data)
 
 
 
