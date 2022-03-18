@@ -247,6 +247,9 @@ def send_struct_impl_field(value, field):
         breakpoint()
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
+    while len(data) > 0xff:
+        send_apdu(INS_STRUCT_IMPL, P1_PARTIAL, P2_FIELD, data[:0xff])
+        data = data[0xff:]
     send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data)
 
 
