@@ -46,10 +46,10 @@ def send_struct_def_name(name):
 
 
 # From a string typename, extract the type and all the array depth
-# Input  = "uint8[2][][4]"
-# Output = ('uint8', [2, None, 4])
+# Input  = "uint8[2][][4]"          |   "bool"
+# Output = ('uint8', [2, None, 4])  |   ('bool', [])
 def get_array_levels(typename):
-    array_levels = list()
+    array_lvls = list()
     regex = re.compile("(.*)\[([0-9]*)\]$")
 
     while True:
@@ -63,9 +63,13 @@ def get_array_levels(typename):
             level_size = None
         else:
             level_size = int(level_size)
-        array_levels.insert(0, level_size)
-    return (typename, array_levels)
+        array_lvls.insert(0, level_size)
+    return (typename, array_lvls)
 
+
+# From a string typename, extract the type and its size
+# Input  = "uint64"         |   "string"
+# Output = ('uint', 64)     |   ('string', None)
 def get_typesize(typename):
     regex = re.compile("^(\w+?)(\d*)$")
     result = regex.search(typename)
@@ -76,6 +80,7 @@ def get_typesize(typename):
     else:
         typesize = int(typesize)
     return (typename, typesize)
+
 
 
 def parse_int(typesize):
@@ -98,8 +103,8 @@ def parse_byte(typesize):
 
 def parse_bytes(typesize):
     if typesize != None:
-        return (Type.sol_bytes_dyn, None)
-    return (Type.sol_bytes_fix, typesize)
+        return (Type.sol_bytes_fix, typesize)
+    return (Type.sol_bytes_dyn, None)
 
 # set functions for each type
 parsing_type_functions = {};
@@ -111,10 +116,12 @@ parsing_type_functions["string"] = parse_string
 parsing_type_functions["byte"] = parse_byte
 parsing_type_functions["bytes"] = parse_bytes
 
+
+
 def send_struct_def_field(typename, keyname):
     type_enum = None
 
-    (typename, array_levels) = get_array_levels(typename)
+    (typename, array_lvls) = get_array_levels(typename)
     (typename, typesize) = get_typesize(typename)
 
     if typename in parsing_type_functions.keys():
@@ -124,16 +131,16 @@ def send_struct_def_field(typename, keyname):
         typesize = None
 
     data = bytearray()
-    data.append(((len(array_levels) > 0) << 7) | ((typesize != None) << 6) | type_enum) # typedesc
+    data.append(((len(array_lvls) > 0) << 7) | ((typesize != None) << 6) | type_enum) # typedesc
     if type_enum == Type.custom:
         data.append(len(typename))
         for char in typename:
             data.append(ord(char))
     if typesize != None:
         data.append(typesize)
-    if len(array_levels) > 0:
-        data.append(len(array_levels))
-        for lvl in array_levels:
+    if len(array_lvls) > 0:
+        data.append(len(array_lvls))
+        for lvl in array_lvls:
             if lvl == None:
                 data.append(ArrayType.dynamic)
             else:
@@ -144,7 +151,8 @@ def send_struct_def_field(typename, keyname):
         data.append(ord(char))
 
     send_apdu(INS_STRUCT_DEF, P1_FULL, P2_FIELD, data)
-    return (type_enum, array_levels)
+    return (typename, type_enum, typesize, array_lvls)
+
 
 
 def send_struct_impl_name(structname):
@@ -172,9 +180,9 @@ def main(input_file):
         # send types definition
         for key in types.keys():
             send_struct_def_name(key)
-            for field in types[key]:
-                ret = send_struct_def_field(field["type"], field["name"])
-                (field["enum"], field["array_levels"]) = ret
+            for f in types[key]:
+                (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
+                send_struct_def_field(f["type"], f["name"])
 
         # send domain implementation
         send_struct_impl_name("EIP712Domain")
@@ -186,7 +194,7 @@ def main(input_file):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        main(sys.argv[1])
+        quit(0 if main(sys.argv[1]) else 1)
     else:
-        print("Usage: %s JSON_FILE" % (sys.argv[0]))
+        print("Usage: %s JSON_FILE" % (sys.argv[0]), file=sys.stderr)
         quit(1)
