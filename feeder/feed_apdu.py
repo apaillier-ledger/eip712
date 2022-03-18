@@ -162,9 +162,131 @@ def send_struct_impl_name(structname):
     send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_NAME, data)
 
 
-def send_struct_impl_field(struct_def, key, value):
-    return
 
+def send_struct_impl_array(size):
+    data = bytearray()
+    data.append(size)
+    send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_ARRAY, data)
+
+
+
+def encode_integer(value, typesize):
+    data = bytearray()
+
+    # Some are already represented as integers in the JSON, but most as strings
+    if isinstance(value, str):
+        base = 10
+        if value.startswith("0x"):
+            base = 16
+        value = int(value, base)
+
+    if value == 0:
+        data.append(0)
+    else:
+        while value > 0:
+            data.append(value & 0xff)
+            value >>= 8
+        data.reverse()
+    return data
+
+def encode_int(value, typesize):
+    return encode_integer(value, typesize)
+
+def encode_uint(value, typesize):
+    return encode_integer(value, typesize)
+
+def encode_hex_string(value, size):
+    data = bytearray()
+    value = value[2:] # skip 0x
+    byte_idx = 0
+    while byte_idx < size:
+        data.append(int(value[(byte_idx * 2):(byte_idx * 2 + 2)], 16))
+        byte_idx += 1
+    return data
+
+def encode_address(value, typesize):
+    return encode_hex_string(value, 20)
+
+def encode_bool(value, typesize):
+    return encode_integer(value, typesize)
+
+def encode_string(value, typesize):
+    data = bytearray()
+    for char in value:
+        data.append(ord(char))
+    return data
+
+def encode_byte(value, typesize):
+    return bytearray()
+
+def encode_bytes_fix(value, typesize):
+    return encode_hex_string(value, typesize)
+
+def encode_bytes_dyn(value, typesize):
+    # length of the value string
+    # - the length of 0x (2)
+    # / by the length of one byte in a hex string (2)
+    return encode_hex_string(value, int((len(value) - 2) / 2))
+
+# set functions for each type
+encoding_functions = {}
+encoding_functions[Type.sol_int] = encode_int
+encoding_functions[Type.sol_uint] = encode_uint
+encoding_functions[Type.sol_address] = encode_address
+encoding_functions[Type.sol_bool] = encode_bool
+encoding_functions[Type.sol_string] = encode_string
+encoding_functions[Type.sol_byte] = encode_byte
+encoding_functions[Type.sol_bytes_fix] = encode_bytes_fix
+encoding_functions[Type.sol_bytes_dyn] = encode_bytes_dyn
+
+
+
+def send_struct_impl_field(value, field):
+    # Something wrong happened if this triggers
+    if isinstance(value, list) or (field["enum"] == Type.custom):
+        breakpoint()
+
+    data = encoding_functions[field["enum"]](value, field["typesize"])
+    send_apdu(INS_STRUCT_IMPL, P1_FULL, P2_FIELD, data)
+
+
+
+def evaluate_field(structs, data, field, lvls_left):
+    array_lvls = field["array_lvls"]
+
+    if len(array_lvls) > 0 and lvls_left > 0:
+        send_struct_impl_array(len(data))
+        idx = 0
+        for subdata in data:
+            if not evaluate_field(structs, subdata, field, lvls_left - 1):
+                return False
+            idx += 1
+        if array_lvls[lvls_left - 1] != None:
+            if array_lvls[lvls_left - 1] != idx:
+                print("Mismatch in array size! Got %d, expected %d\n" %
+                      (idx, array_lvls[lvls_left - 1]),
+                      file=sys.stderr)
+                return False
+    else:
+        if field["enum"] == Type.custom:
+            if not send_struct_impl(structs, data, field["type"]):
+                return False
+        else:
+            send_struct_impl_field(data, field)
+    return True
+
+
+
+def send_struct_impl(structs, data, structname):
+    # Check if it is a struct we don't known
+    if structname not in structs.keys():
+        return False
+
+    struct = structs[structname]
+    for f in struct:
+        if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
+            return False
+    return True
 
 
 
@@ -185,11 +307,15 @@ def main(input_file):
                 send_struct_def_field(f["type"], f["name"])
 
         # send domain implementation
-        send_struct_impl_name("EIP712Domain")
-        for key, val in data_json["domain"].items():
-            send_struct_impl_field(types["EIP712Domain"],
-                                   key,
-                                   val)
+        send_struct_impl_name(domain_typename)
+        if not send_struct_impl(types, domain, domain_typename):
+            return False
+
+        # send message implementation
+        send_struct_impl_name(message_typename)
+        if not send_struct_impl(types, message, message_typename):
+            return False
+    return True
 
 
 if __name__ == "__main__":
