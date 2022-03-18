@@ -90,7 +90,7 @@ def parse_uint(typesize):
     return (Type.sol_uint, int(typesize / 8))
 
 def parse_address(typesize):
-    return (Type.sol_string, None)
+    return (Type.sol_address, None)
 
 def parse_bool(typesize):
     return (Type.sol_bool, None)
