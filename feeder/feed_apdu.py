@@ -250,7 +250,7 @@ def send_struct_impl_field(value, field):
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
     # Add a 16-bit integer with the value's byte length
-    data_w_length.append((len(data) & 0xff000) >> 8)
+    data_w_length.append((len(data) & 0xff00) >> 8)
     data_w_length.append(len(data) & 0xff)
     data_w_length += data
     while len(data_w_length) > 0xff:
