@@ -1,0 +1,21 @@
+@startuml
+
+participant LedgerJS        as ll
+participant "Ethereum app"  as app
+actor       Bob             as user
+
+ll ->  app      : First root node
+app <-- user    : Right click
+ll <- app       : OK, going right
+ll ->  app      : Right node
+app <-- user    : Down click
+ll <- app       : OK, going down
+ll ->  app      : Down node
+app <-- user    : Left click
+ll <- app       : OK, going left
+ll ->  app      : Left node
+app <-- user    : Up click
+ll <- app       : OK, going up
+ll ->  app      : Up node
+
+@enduml
