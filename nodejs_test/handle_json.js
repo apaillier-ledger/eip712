@@ -3,7 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const keccak256 = require('keccak256');
-
+const eip712 = require('eip-712');
 
 
 
@@ -470,6 +470,7 @@ function    test_hash()
 
     message_hash = get_hash_struct(gData.types, gData.primaryType, gData.message);//, true);
     console.log("Message hash: 0x" + message_hash.toString("hex"));
+    console.log("TypeHash: " + eip712.encodeType(gData, gData.primaryType));
 }
 
 //interactive_version();
