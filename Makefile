@@ -14,7 +14,7 @@ CFLAGS	= -Wall -Wextra $(INC)
 DEBUG	:= 1
 
 ifeq ($(DEBUG), 1)
-CFLAGS	+= -O0 -g3
+CFLAGS	+= -O0 -g3 -DDEBUG
 else
 CFLAGS	+= -Os -g0
 endif
