@@ -465,12 +465,17 @@ function    test_hash()
     let domain_hash;
     let message_hash;
 
-    domain_hash = get_hash_struct(gData.types, "EIP712Domain", gData.domain);
-    console.log("Domain hash: 0x" + domain_hash.toString("hex"));
+    console.log("=== Domain ===");
+    //domain_hash = get_hash_struct(gData.types, "EIP712Domain", gData.domain);
+    //console.log("Domain hash: 0x" + domain_hash.toString("hex"));
+    console.log("encodeType: " + eip712.encodeType(gData, "EIP712Domain"));
+    console.log("typeHash: 0x" + Buffer.from(eip712.getTypeHash(gData, "EIP712Domain")).toString("hex"));
 
-    message_hash = get_hash_struct(gData.types, gData.primaryType, gData.message);//, true);
-    console.log("Message hash: 0x" + message_hash.toString("hex"));
-    console.log("TypeHash: " + eip712.encodeType(gData, gData.primaryType));
+    console.log("=== Message ===");
+    //message_hash = get_hash_struct(gData.types, gData.primaryType, gData.message);//, true);
+    //console.log("Message hash: 0x" + message_hash.toString("hex"));
+    console.log("encodeType: " + eip712.encodeType(gData, gData.primaryType));
+    console.log("typeHash: 0x" + Buffer.from(eip712.getTypeHash(gData, gData.primaryType)).toString("hex"));
 }
 
 //interactive_version();
