@@ -48,9 +48,9 @@ Byte meaning    | TypeDesc | TypeSize | KeyLength | Key (as string) |
 
 Byte values     |   0xC2   |   0x08   |    0x02    |   0x00   |   0x01   |    0x02   |   0x03    | 'I' | 'D' | 's' |
 Byte meaning    | TypeDesc | TypeSize | ArrayCount | DynArray | FixArray | ArraySize | KeyLength | Key (as string) |
-=> uint8 matches[][2]
+=> uint64 matches[][2]
 
-Byte values     |   0x00   |  0x03  | 'P' | 'e' | 'r' | 's' | 'o' | 'n' |    0x02   |    't' | 'o'    |
+Byte values     |   0x00   |  0x06  | 'P' | 'e' | 'r' | 's' | 'o' | 'n' |    0x02   |    't' | 'o'    |
 Byte meaning    | TypeDesc | Length |        TypeName (as string)       | KeyLength | Key (as string) |
 => Person to
 
@@ -232,22 +232,50 @@ Solution #2
 -----------
 -> struct outer
     -> compute typeHash (store in RAM)
+TH  TypeHash
+FH  FieldHash
+SH  StructHash
 | TH1 |
 -> field a (outer)
     -> encode to 32 bytes & hash (store in RAM)
-| TH1 | H2 |
+| TH1 | FH2 |
 -> field a (inner)
     -> first field of struct inner
         -> compute typeHash (store in RAM)
-| TH1 | H2 | TH3 |
+| TH1 | FH2 | TH3 |
     -> encode to 32 bytes & hash (store in RAM)
-| TH1 | H2 | TH3 | H4 |
+| TH1 | FH2 | TH3 | FH4 |
 -> field c (inner)
     -> encode to 32 bytes & hash (store in RAM)
-| TH1 | H2 | TH3 | H4 | H5 |
+| TH1 | FH2 | TH3 | FH4 | FH5 |
     -> last field of struct inner
         -> do a hash of all hashes from struct inner (store in RAM)
-| TH1 | H2 | SH6 |
+| TH1 | FH2 | SH6 |
     -> last field of struct outer
         -> do a hash of all hashes from struct outer (store in RAM)
 | SH7 |
+
+
+List of scope-indexes making up the path of the next field in the message
+| IDX1 | IDX2 | IDX3 | ... |
+
+Count of used indexes
+| PATH_LENGTH |
+
+List of array levels:
+    Each element has two property:
+        * Path index
+        * Array size
+    Memory heavy if one field as multiple array levels, but unlikely as we'll
+    probably have multiple fields with only one array level.
+
+    Works with array of structs even if we don't really evaluate them, rather only the
+    native-type fields inside, since we can point to it with the path idx.
+
+Example for data1:
+Path : | 1 | 1 |
+array_levels: | pidx=0, size=1 | pidx=1, size=3 |
+
+Example for data6:
+Path : | 1 | 2 | 0 |
+array_levels: | pidx=0, size=4 | pidx=0, size=3 |
