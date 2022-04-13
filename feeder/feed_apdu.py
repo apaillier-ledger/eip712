@@ -27,7 +27,6 @@ class Type(IntEnum):
     sol_address = auto()
     sol_bool = auto()
     sol_string = auto()
-    sol_byte = auto()
     sol_bytes_fix = auto()
     sol_bytes_dyn = auto()
 
@@ -235,7 +234,6 @@ encoding_functions[Type.sol_uint] = encode_uint
 encoding_functions[Type.sol_address] = encode_address
 encoding_functions[Type.sol_bool] = encode_bool
 encoding_functions[Type.sol_string] = encode_string
-encoding_functions[Type.sol_byte] = encode_byte
 encoding_functions[Type.sol_bytes_fix] = encode_bytes_fix
 encoding_functions[Type.sol_bytes_dyn] = encode_bytes_dyn
 

@@ -70,9 +70,8 @@ The lower 4 bits indicate the type, when evaluated as a 4-bit value:
 * 3 -> address
 * 4 -> bool
 * 5 -> string
-* 6 -> byte
-* 7 -> fixed-size bytes (1..32)
-* 8 -> dynamic-size bytes
+* 6 -> fixed-size bytes (1..32)
+* 7 -> dynamic-size bytes
 
 => TypeSize can only be set if the type is not a custom struct.
 
