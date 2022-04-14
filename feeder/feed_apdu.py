@@ -247,9 +247,11 @@ def send_struct_impl_field(value, field):
         breakpoint()
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
-    # Add a 16-bit integer with the value's byte length
+
+    # Add a 16-bit integer with the value's byte length (network byte order)
     data_w_length.append((len(data) & 0xff00) >> 8)
     data_w_length.append(len(data) & 0xff)
+
     data_w_length += data
     while len(data_w_length) > 0xff:
         send_apdu(INS_STRUCT_IMPL, P1_PARTIAL, P2_FIELD, data_w_length[:0xff])

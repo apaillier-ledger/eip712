@@ -127,7 +127,7 @@ Byte meaning    |    Length   |    Raw value       |
 
 
 The value in the APDU is represented into a format that's tied to its type.
-Every value in JSON is a string, but an integer 128 if going to be sent as
+Every value in JSON is a string, but an integer 128 is going to be sent as
 as one byte         | 0x80 |
 instead of three    | '1' | '2' | '8' |
 
