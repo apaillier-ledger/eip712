@@ -271,10 +271,55 @@ List of array levels:
     Works with array of structs even if we don't really evaluate them, rather only the
     native-type fields inside, since we can point to it with the path idx.
 
-Example for data1:
-Path : | 1 | 1 |
-array_levels: | pidx=0, size=1 | pidx=1, size=3 |
+## How to make sense of all the computed hashes
 
-Example for data6:
-Path : | 1 | 2 | 0 |
-array_levels: | pidx=0, size=4 | pidx=0, size=3 |
+Have a marker byte after each hash.
+
+| HASH 1 | HASH MARKER 1 | HASH 2 | HASH MARKER 2 |
+
+Hash marker : 1 byte
+
+| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 | bits
+|---------------|---------------|
+| backward info | forward info  |
+
+### backward info
+
+About the hash that preceeds the marker :
+
+* FIELD HASH
+* TYPE HASH
+* 
+
+
+### forward info
+
+About what follows the marker (not necessarily just the next hash)
+
+
+
+
+Stack of progressive hashes :
+
+* push when going down a depth level + start with typehash (for structs)
+* pop when going up a depth level + continue the previous progressive hash (if it exists) with the computed one
+* update the top one when encountering a new field of the same depth level
+
+
+primary struct outer {
+    int     a
+    inner   b
+}
+
+struct inner {
+    int     a
+    int     c
+}
+
+-> push new prog hash + start with outer's typehash
+-> continue last hash with hash of a
+-> push new prog hash + start with inner's typehash
+-> continue last hash with hash of a
+-> continue last hash with hash of c
+-> pop hash + continue with it the last hash
+-> pop hash => global hash

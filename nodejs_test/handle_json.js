@@ -7,7 +7,7 @@ const eip712 = require('eip-712');
 
 
 
-const rawdata = fs.readFileSync('data.json');
+const rawdata = fs.readFileSync(process.argv[2]);
 const gData = JSON.parse(rawdata);
 
 /*
@@ -466,16 +466,20 @@ function    test_hash()
     let message_hash;
 
     console.log("=== Domain ===");
-    //domain_hash = get_hash_struct(gData.types, "EIP712Domain", gData.domain);
-    //console.log("Domain hash: 0x" + domain_hash.toString("hex"));
     console.log("encodeType: " + eip712.encodeType(gData, "EIP712Domain"));
     console.log("typeHash: 0x" + Buffer.from(eip712.getTypeHash(gData, "EIP712Domain")).toString("hex"));
+    console.log("structHash: 0x" + Buffer.from(eip712.getStructHash(gData, "EIP712Domain", gData.domain)).toString("hex"));
 
     console.log("=== Message ===");
-    //message_hash = get_hash_struct(gData.types, gData.primaryType, gData.message);//, true);
-    //console.log("Message hash: 0x" + message_hash.toString("hex"));
     console.log("encodeType: " + eip712.encodeType(gData, gData.primaryType));
     console.log("typeHash: 0x" + Buffer.from(eip712.getTypeHash(gData, gData.primaryType)).toString("hex"));
+    console.log("structHash: 0x" + Buffer.from(eip712.getStructHash(gData, gData.primaryType, gData.message)).toString("hex"));
+
+    //console.log("=== Sub-Message ===");
+    //let type = "AssetType";
+    //console.log("encodeType: " + eip712.encodeType(gData, type));
+    //console.log("typeHash: 0x" + Buffer.from(eip712.getTypeHash(gData, type)).toString("hex"));
+    //console.log("structHash: 0x" + Buffer.from(eip712.getStructHash(gData, type, gData.message.makeAsset.assetType)).toString("hex"));
 }
 
 //interactive_version();
