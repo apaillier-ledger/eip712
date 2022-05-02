@@ -10,6 +10,8 @@ SRC		= $(SRCP)/entrypoint.c \
 		  $(SRCP)/mem.c \
 		  $(SRCP)/encode_type.c \
 		  $(SRCP)/type_hash.c \
+		  $(SRCP)/context.c \
+		  $(SRCP)/sol_typenames.c \
 		  $(LIBP)/sha3.c
 
 INC		= -I $(LIBP)
