@@ -14,21 +14,14 @@
                 "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"
             ]
         },
-        "to": [
-            {
-                "name": "Alice",
-                "wallets": [
-                    "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
-                    "0xB0B0b0b0b0b0B000000000000000000000000000"
-                ]
-            },
-            {
-                "name": "Bob",
-                "wallets": [
-                    "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57"
-                ]
-            }
-        ]
+        "to": {
+            "name": "Bob",
+            "wallets": [
+                "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
+                "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57",
+                "0xB0B0b0b0b0b0B000000000000000000000000000"
+            ]
+        }
     },
     "primaryType": "Mail",
     "types": {
@@ -38,13 +31,9 @@
             { "name": "chainId", "type": "uint256" },
             { "name": "verifyingContract", "type": "address" }
         ],
-        "Group": [
-          { "name": "name", "type": "string" },
-          { "name": "members", "type": "Person[]" }
-        ],
         "Mail": [
             { "name": "from", "type": "Person" },
-            { "name": "to", "type": "Person[]" },
+            { "name": "to", "type": "Person" },
             { "name": "contents", "type": "string" }
         ],
         "Person": [

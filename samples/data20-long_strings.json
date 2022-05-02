@@ -6,7 +6,7 @@
         "version": "1"
     },
     "message": {
-        "contents": "Hello, Bob!",
+        "contents": "Hello, Bob! 0123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456780123456789999999999999999999999999999990123456789",
         "from": {
             "name": "Cow",
             "wallets": [
@@ -16,16 +16,11 @@
         },
         "to": [
             {
-                "name": "Alice",
-                "wallets": [
-                    "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
-                    "0xB0B0b0b0b0b0B000000000000000000000000000"
-                ]
-            },
-            {
                 "name": "Bob",
                 "wallets": [
-                    "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57"
+                    "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
+                    "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57",
+                    "0xB0B0b0b0b0b0B000000000000000000000000000"
                 ]
             }
         ]
