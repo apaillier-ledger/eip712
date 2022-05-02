@@ -4,11 +4,12 @@ CC		= gcc
 
 SRCP	= ./src_features/signMessageEIP712
 
-SRC		= $(SRCP)/entrypoint.c
+SRC		= $(SRCP)/entrypoint.c \
+		  $(SRCP)/mem.c
 
 OBJ		= $(SRC:.c=.o)
 
-CFLAGS	= -Wall -Wextra
+CFLAGS	= -Wall -Wextra $(INC)
 
 DEBUG	:= 1
 
