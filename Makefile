@@ -12,7 +12,8 @@ SRC		= $(SRCP)/entrypoint.c \
 		  $(SRCP)/type_hash.c \
 		  $(SRCP)/context.c \
 		  $(SRCP)/sol_typenames.c \
-		  $(LIBP)/sha3.c
+		  $(LIBP)/sha3.c \
+		  $(SRCP)/mem_utils.c
 
 INC		= -I $(LIBP)
 
