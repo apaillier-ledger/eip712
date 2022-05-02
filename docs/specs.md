@@ -192,6 +192,62 @@ INS | P1  | P2  | message
 * The next key is "c" of type "int", it is a solidity native type, so we will wait for it. -> "c"
 
 How do we keep track of which key to get, two options :
-* a depth first search index, for example to get the "c" of struct inner with outer as primary type, it would be index 2
-  (third one)
+* a depth first search index, for example to get the "c" of struct inner with outer as primary type, it would be index 3
+  (forth one)
 * a dynamic path-like index approach, each index would represent a struct depth, to get that same "c" key, it woud be 1->1
+
+#### How to manage hashing in RAM
+
+primary struct outer {
+    int     a
+    inner   b
+}
+
+struct inner {
+    int     a
+    int     c
+}
+
+Solution #1
+-----------
+-> struct outer
+    -> compute typeHash
+        -> start progressive struct hash on it (in RAM)
+-> field a (outer)
+    -> encode to 32 bytes & hash
+        -> continue progressive struct hash on it (in RAM)
+-> field a (inner)
+    -> first field of struct inner
+        -> compute typeHash
+            -> start progressive struct hash on it (in RAM)
+    -> encode to 32 bytes & hash
+        -> continue progressive struct hash on it (in RAM)
+-> field c (inner)
+    -> encode to 32 bytes & hash
+        -> continue progressive struct hash on it (in RAM)
+    -> last field of struct inner
+        -> finish progressive hash and continue progressive hash to the parent struct (in RAM)
+
+Solution #2
+-----------
+-> struct outer
+    -> compute typeHash (store in RAM)
+| TH1 |
+-> field a (outer)
+    -> encode to 32 bytes & hash (store in RAM)
+| TH1 | H2 |
+-> field a (inner)
+    -> first field of struct inner
+        -> compute typeHash (store in RAM)
+| TH1 | H2 | TH3 |
+    -> encode to 32 bytes & hash (store in RAM)
+| TH1 | H2 | TH3 | H4 |
+-> field c (inner)
+    -> encode to 32 bytes & hash (store in RAM)
+| TH1 | H2 | TH3 | H4 | H5 |
+    -> last field of struct inner
+        -> do a hash of all hashes from struct inner (store in RAM)
+| TH1 | H2 | SH6 |
+    -> last field of struct outer
+        -> do a hash of all hashes from struct outer (store in RAM)
+| SH7 |

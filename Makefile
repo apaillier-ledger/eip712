@@ -19,7 +19,9 @@ SRC		= $(SRCP)/entrypoint.c \
 		  $(LIBP)/sha3.c \
 		  $(SRCP)/mem_utils.c \
 		  $(WRAPP)/libcxng.c \
-		  $(WRAPP)/ctx.c
+		  $(WRAPP)/ctx.c \
+		  $(SRCP)/encode_field.c \
+		  $(SRCP)/field_hash.c
 
 INC		= -I $(LIBP) \
 		  -I $(WRAPP)
