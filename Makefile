@@ -5,7 +5,11 @@ CC		= gcc
 SRCP	= ./src_features/signMessageEIP712
 
 SRC		= $(SRCP)/entrypoint.c \
-		  $(SRCP)/mem.c
+		  $(SRCP)/mem.c \
+		  $(SRCP)/encode_type.c \
+		  $(SRCP)/type_hash.c
+
+INC		= -I ./include
 
 OBJ		= $(SRC:.c=.o)
 
