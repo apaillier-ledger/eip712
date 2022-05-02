@@ -2,14 +2,17 @@ NAME	= eip712_implem
 
 CC		= gcc
 
+LIBP	= ./lib
+
 SRCP	= ./src_features/signMessageEIP712
 
 SRC		= $(SRCP)/entrypoint.c \
 		  $(SRCP)/mem.c \
 		  $(SRCP)/encode_type.c \
-		  $(SRCP)/type_hash.c
+		  $(SRCP)/type_hash.c \
+		  $(LIBP)/sha3.c
 
-INC		= -I ./include
+INC		= -I $(LIBP)
 
 OBJ		= $(SRC:.c=.o)
 
