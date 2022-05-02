@@ -21,7 +21,8 @@ SRC		= $(SRCP)/entrypoint.c \
 		  $(WRAPP)/libcxng.c \
 		  $(WRAPP)/ctx.c \
 		  $(SRCP)/encode_field.c \
-		  $(SRCP)/field_hash.c
+		  $(SRCP)/field_hash.c \
+		  $(SRCP)/path.c
 
 INC		= -I $(LIBP) \
 		  -I $(WRAPP)
