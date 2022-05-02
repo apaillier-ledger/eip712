@@ -4,6 +4,10 @@ CC		= gcc
 
 LIBP	= ./lib
 
+WRAPP	= ./wrap
+
+INC		= -I ./include
+
 SRCP	= ./src_features/signMessageEIP712
 
 SRC		= $(SRCP)/entrypoint.c \
@@ -14,9 +18,11 @@ SRC		= $(SRCP)/entrypoint.c \
 		  $(SRCP)/sol_typenames.c \
 		  $(LIBP)/sha3.c \
 		  $(SRCP)/mem_utils.c \
-		  $(SRCP)/hash_wrap.c
+		  $(WRAPP)/libcxng.c \
+		  $(WRAPP)/ctx.c
 
-INC		= -I $(LIBP)
+INC		= -I $(LIBP) \
+		  -I $(WRAPP)
 
 OBJ		= $(SRC:.c=.o)
 

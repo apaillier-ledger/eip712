@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <string.h>
-#include "hash_wrap.h"
-
-cx_sha3_t   global_sha3;
+#include "libcxng.h"
 
 int cx_keccak_init(cx_hash_t *hash, size_t size)
 {
