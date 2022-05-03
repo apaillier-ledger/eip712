@@ -9,11 +9,14 @@ from enum import IntEnum, auto
 CLA             = 0xe0
 INS_STRUCT_DEF  = 0x18
 INS_STRUCT_IMPL = 0x1a
+INS_SIGN        = 0x0c
 P1_COMPLETE     = 0x00
-P1_PARTIAL      = 0xFF
+P1_PARTIAL      = 0xff
 P2_NAME         = 0x00
-P2_ARRAY        = 0x0F
-P2_FIELD        = 0xFF
+P2_ARRAY        = 0x0f
+P2_FIELD        = 0xff
+P2_VERS_LEGACY  = 0x00
+P2_VERS_NEW     = 0x01
 
 class ArrayType(IntEnum):
     dynamic = 0
@@ -298,6 +301,9 @@ def send_struct_impl(structs, data, structname):
     return True
 
 
+def send_sign():
+    send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, bytearray())
+
 
 def main(input_file):
     with open(input_file, "r") as data:
@@ -324,6 +330,9 @@ def main(input_file):
         send_struct_impl_name(message_typename)
         if not send_struct_impl(types, message, message_typename):
             return False
+
+        # sign
+        send_sign()
     return True
 
 
