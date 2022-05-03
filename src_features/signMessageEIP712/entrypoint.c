@@ -433,9 +433,10 @@ int     main(void)
                 payload_size = buf[idx];
                 state = OFFSET_DATA;
                 idx += 1;
-                break;
+                if (payload_size > 0) break;
+                __attribute__((fallthrough));
             case OFFSET_DATA:
-                if (--payload_size == 0)
+                if ((payload_size == 0) || (--payload_size == 0))
                 {
                     if (!handle_apdu(buf)) return false;
                     state = OFFSET_CLA;
