@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import json
 import sys
 import re
@@ -17,6 +18,10 @@ P2_ARRAY        = 0x0f
 P2_FIELD        = 0xff
 P2_VERS_LEGACY  = 0x00
 P2_VERS_NEW     = 0x01
+
+# global variable
+parser = None
+
 
 class ArrayType(IntEnum):
     dynamic = 0
@@ -305,8 +310,8 @@ def send_sign():
     send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, bytearray())
 
 
-def main(input_file):
-    with open(input_file, "r") as data:
+def main():
+    with open(args.JSON_FILE, "r") as data:
         data_json = json.load(data)
         domain_typename = "EIP712Domain"
         message_typename = data_json["primaryType"]
@@ -337,8 +342,7 @@ def main(input_file):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        quit(0 if main(sys.argv[1]) else 1)
-    else:
-        print("Usage: %s JSON_FILE" % (sys.argv[0]), file=sys.stderr)
-        quit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("JSON_FILE")
+    args = parser.parse_args()
+    quit(0 if main() else 1)
