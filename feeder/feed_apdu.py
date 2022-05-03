@@ -7,8 +7,8 @@ from enum import IntEnum, auto
 
 # defines
 CLA             = 0xe0
-INS_STRUCT_DEF  = 0x18
-INS_STRUCT_IMPL = 0x1a
+INS_STRUCT_DEF  = 0x1a
+INS_STRUCT_IMPL = 0x1c
 INS_SIGN        = 0x0c
 P1_COMPLETE     = 0x00
 P1_PARTIAL      = 0xff

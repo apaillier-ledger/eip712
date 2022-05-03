@@ -29,7 +29,7 @@ Archi:
 ### APDUs
 
 #### Send struct definition
-INS 0x18
+INS 0x1A
 
 P1  0x00
 P2  0x00, name (length infered from LC)
@@ -105,7 +105,7 @@ Array Type:
 Array Size (optional): Indicates how big the fixed size array is
 
 #### Send struct implementation (to display & hash)
-INS 0x1A
+INS 0x1C
 
 P1  0x00
 P2  0x00, name (length infered from LC)
