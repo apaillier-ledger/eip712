@@ -313,7 +313,10 @@ def send_struct_impl(structs, data, structname):
 
 
 def send_sign():
-    send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, bytearray())
+    bip32path = bytearray.fromhex("8000002c8000003c800000000000000000000000")
+    path_len = bytearray()
+    path_len.append(int(len(bip32path) / 4))
+    send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)
 
 
 def main():
