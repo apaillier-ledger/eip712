@@ -43,7 +43,7 @@ class Type(IntEnum):
 
 # Write an APDU with given parameters, computes LC automatically from the data
 def send_apdu(ins, p1, p2, data):
-    if args.speculos:
+    if args.speculos or args.device:
         trans.send(cla=CLA, ins=ins, p1=p1, p2=p2, cdata=data)
         trans.recv()
     else:
@@ -354,7 +354,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("JSON_FILE")
     parser.add_argument("-s", "--speculos", action="store_true")
+    parser.add_argument("-d", "--device", action="store_true")
     args = parser.parse_args()
     if (args.speculos):
         trans = Transport(interface="tcp", server="127.0.0.1", port=9999, debug=True)
+    elif (args.device):
+        trans = Transport(interface="hid", debug=True)
     quit(0 if main() else 1)
