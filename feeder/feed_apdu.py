@@ -5,6 +5,7 @@ import json
 import sys
 import re
 from enum import IntEnum, auto
+from ledgercomm import Transport
 
 # defines
 CLA             = 0xe0
@@ -19,8 +20,9 @@ P2_FIELD        = 0xff
 P2_VERS_LEGACY  = 0x00
 P2_VERS_NEW     = 0x01
 
-# global variable
+# global variables
 parser = None
+trans = None
 
 
 class ArrayType(IntEnum):
@@ -41,8 +43,12 @@ class Type(IntEnum):
 
 # Write an APDU with given parameters, computes LC automatically from the data
 def send_apdu(ins, p1, p2, data):
-    sys.stdout.buffer.write(bytes([CLA, ins, p1, p2, len(data)]))
-    sys.stdout.buffer.write(data)
+    if args.speculos:
+        trans.send(cla=CLA, ins=ins, p1=p1, p2=p2, cdata=data)
+        trans.recv()
+    else:
+        sys.stdout.buffer.write(bytes([CLA, ins, p1, p2, len(data)]))
+        sys.stdout.buffer.write(data)
 
 
 def send_struct_def_name(name):
@@ -344,5 +350,8 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("JSON_FILE")
+    parser.add_argument("-s", "--speculos", action="store_true")
     args = parser.parse_args()
+    if (args.speculos):
+        trans = Transport(interface="tcp", server="127.0.0.1", port=9999, debug=True)
     quit(0 if main() else 1)
