@@ -44,8 +44,10 @@ class Type(IntEnum):
 # Write an APDU with given parameters, computes LC automatically from the data
 def send_apdu(ins, p1, p2, data):
     if args.speculos or args.device:
+        print("> %.02x %.02x %.02x %.02x ... " % (CLA, ins, p1, p2), end="", flush=True)
         trans.send(cla=CLA, ins=ins, p1=p1, p2=p2, cdata=data)
         trans.recv()
+        print("Done!")
     else:
         sys.stdout.buffer.write(bytes([CLA, ins, p1, p2, len(data)]))
         sys.stdout.buffer.write(data)
@@ -111,9 +113,6 @@ def parse_bool(typesize):
 def parse_string(typesize):
     return (Type.sol_string, None)
 
-def parse_byte(typesize):
-    return (Type.sol_byte, None)
-
 def parse_bytes(typesize):
     if typesize != None:
         return (Type.sol_bytes_fix, typesize)
@@ -126,7 +125,6 @@ parsing_type_functions["uint"] = parse_uint
 parsing_type_functions["address"] = parse_address
 parsing_type_functions["bool"] = parse_bool
 parsing_type_functions["string"] = parse_string
-parsing_type_functions["byte"] = parse_byte
 parsing_type_functions["bytes"] = parse_bytes
 
 
