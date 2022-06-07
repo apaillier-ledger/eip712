@@ -194,6 +194,11 @@ def encode_integer(value, typesize):
     if value == 0:
         data.append(0)
     else:
+        if value < 0: # negative number, send it as unsigned
+            mask = 0
+            for i in range(typesize): # make a mask as big as the typesize
+                mask = (mask << 8) | 0xff
+            value &= mask
         while value > 0:
             data.append(value & 0xff)
             value >>= 8
