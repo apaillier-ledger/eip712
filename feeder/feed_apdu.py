@@ -350,6 +350,8 @@ def main():
 
         # sign
         send_sign()
+    if trans:
+        trans.close()
     return True
 
 
