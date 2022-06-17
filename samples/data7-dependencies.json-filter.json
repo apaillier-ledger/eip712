@@ -1,0 +1,9 @@
+{
+    "name": "Complex deps",
+    "fields": {
+        "contents": "Message",
+        "from.name": "Sender",
+        "to.members[*].name": "Recipient",
+        "attach.list[*].name": "Attachment"
+    }
+}

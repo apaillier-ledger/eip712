@@ -6,14 +6,20 @@ import sys
 import re
 from enum import IntEnum, auto
 from ledgercomm import Transport
+import jsonpath_ng
+import pdb
 
 # defines
 CLA             = 0xe0
+INS_SIGN        = 0x0c
 INS_STRUCT_DEF  = 0x1a
 INS_STRUCT_IMPL = 0x1c
-INS_SIGN        = 0x0c
+INS_FILTERING   = 0x1e
 P1_COMPLETE     = 0x00
 P1_PARTIAL      = 0xff
+P1_ACTIVATE     = 0x00
+P1_CONTRACT_NAME= 0x0f
+P1_FIELD_NAME   = 0xff
 P2_NAME         = 0x00
 P2_ARRAY        = 0x0f
 P2_FIELD        = 0xff
@@ -23,6 +29,8 @@ P2_VERS_NEW     = 0x01
 # global variables
 parser = None
 trans = None
+filtering_paths = {}
+current_path = list()
 
 
 class ArrayType(IntEnum):
@@ -273,19 +281,29 @@ def send_struct_impl_field(value, field):
     while len(data_w_length) > 0xff:
         send_apdu(INS_STRUCT_IMPL, P1_PARTIAL, P2_FIELD, data_w_length[:0xff])
         data_w_length = data_w_length[0xff:]
+
+    if args.filtering:
+        path = ".".join(current_path)
+        if path in filtering_paths.keys():
+            send_filtering_field_name(filtering_paths[path])
+
     send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data_w_length)
 
 
 
-def evaluate_field(structs, data, field, lvls_left):
+def evaluate_field(structs, data, field, lvls_left, new_level = True):
     array_lvls = field["array_lvls"]
 
+    if new_level:
+        current_path.append(field["name"])
     if len(array_lvls) > 0 and lvls_left > 0:
         send_struct_impl_array(len(data))
         idx = 0
         for subdata in data:
-            if not evaluate_field(structs, subdata, field, lvls_left - 1):
+            current_path.append("[%d]" % (idx))
+            if not evaluate_field(structs, subdata, field, lvls_left - 1, False):
                 return False
+            current_path.pop()
             idx += 1
         if array_lvls[lvls_left - 1] != None:
             if array_lvls[lvls_left - 1] != idx:
@@ -299,6 +317,8 @@ def evaluate_field(structs, data, field, lvls_left):
                 return False
         else:
             send_struct_impl_field(data, field)
+    if new_level:
+        current_path.pop()
     return True
 
 
@@ -314,13 +334,49 @@ def send_struct_impl(structs, data, structname):
             return False
     return True
 
-
 def send_sign():
     bip32path = bytearray.fromhex("8000002c8000003c800000000000000000000000")
     path_len = bytearray()
     path_len.append(int(len(bip32path) / 4))
     send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)
 
+def send_filtering_activate():
+    send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
+
+def send_filtering_name(display_name, p1):
+    payload = bytearray()
+    payload.append(len(display_name))
+    for char in display_name:
+        payload.append(ord(char))
+    sig_length = 16
+    payload.append(sig_length)
+    for i in range(sig_length):
+        payload.append(0x42)
+    send_apdu(INS_FILTERING, p1, 0x00, payload)
+
+def send_filtering_contract_name(display_name):
+    send_filtering_name(display_name, P1_CONTRACT_NAME)
+
+def send_filtering_field_name(display_name):
+    send_filtering_name(display_name, P1_FIELD_NAME)
+
+def read_filtering_file(domain, message):
+    data_json = None
+    with open("%s-filter.json" % (args.JSON_FILE)) as data:
+        data_json = json.load(data)
+    return data_json
+
+# Convert the JSON paths into normal paths
+def prepare_filtering(filtr_data, message):
+    if "fields" in filtr_data:
+        for expr, name in filtr_data["fields"].items():
+            found = False
+            for match in jsonpath_ng.parse(expr).find(message):
+                found = True
+                filtering_paths[str(match.full_path)] = name
+            if not found:
+                return False
+    return True
 
 def main():
     with open(args.JSON_FILE, "r") as data:
@@ -331,6 +387,9 @@ def main():
         domain = data_json["domain"]
         message = data_json["message"]
 
+        if args.filtering:
+            filtr = read_filtering_file(domain, message)
+
         # send types definition
         for key in types.keys():
             send_struct_def_name(key)
@@ -338,10 +397,20 @@ def main():
                 (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
                 send_struct_def_field(f["type"], f["name"])
 
+        if args.filtering:
+            send_filtering_activate()
+            prepare_filtering(filtr, message)
+
         # send domain implementation
         send_struct_impl_name(domain_typename)
         if not send_struct_impl(types, domain, domain_typename):
             return False
+
+        if args.filtering:
+            if filtr and "name" in filtr:
+                send_filtering_contract_name(filtr["name"])
+            else:
+                send_filtering_contract_name(domain.name)
 
         # send message implementation
         send_struct_impl_name(message_typename)
@@ -360,6 +429,7 @@ if __name__ == "__main__":
     parser.add_argument("JSON_FILE")
     parser.add_argument("-s", "--speculos", action="store_true")
     parser.add_argument("-d", "--device", action="store_true")
+    parser.add_argument("-f", "--filtering", action="store_true")
     args = parser.parse_args()
     if (args.speculos):
         trans = Transport(interface="tcp", server="127.0.0.1", port=9999, debug=True)
