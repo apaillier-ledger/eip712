@@ -7,6 +7,9 @@ import re
 from enum import IntEnum, auto
 from ledgercomm import Transport
 import jsonpath_ng
+import hashlib
+from ecdsa import SigningKey
+from ecdsa.util import sigencode_der
 import pdb
 
 # defines
@@ -31,6 +34,7 @@ parser = None
 trans = None
 filtering_paths = {}
 current_path = list()
+sig_ctx = {}
 
 
 class ArrayType(IntEnum):
@@ -285,7 +289,7 @@ def send_struct_impl_field(value, field):
     if args.filtering:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filtering_field_name(filtering_paths[path])
+            send_filtering_field_name(filtering_paths[path], field)
 
     send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data_w_length)
 
@@ -343,22 +347,48 @@ def send_sign():
 def send_filtering_activate():
     send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
 
-def send_filtering_name(display_name, p1):
+def send_filtering_info(p1, display_name, sig):
     payload = bytearray()
     payload.append(len(display_name))
     for char in display_name:
         payload.append(ord(char))
-    sig_length = 16
-    payload.append(sig_length)
-    for i in range(sig_length):
-        payload.append(0x42)
+    payload.append(len(sig))
+    payload += sig
     send_apdu(INS_FILTERING, p1, 0x00, payload)
 
+# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_contract_name(display_name):
-    send_filtering_name(display_name, P1_CONTRACT_NAME)
+    global sig_ctx
 
-def send_filtering_field_name(display_name):
-    send_filtering_name(display_name, P1_FIELD_NAME)
+    msg = bytearray()
+    addr = sig_ctx["caddr"]
+    if addr.startswith("0x"):
+        addr = addr[2:]
+    msg += bytearray.fromhex(addr)
+    msg.append(len(display_name))
+    for char in display_name:
+        msg.append(ord(char))
+
+    sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
+    send_filtering_info(P1_CONTRACT_NAME, display_name, sig)
+
+# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
+def send_filtering_field_name(display_name, field_def):
+    global sig_ctx
+
+    msg = bytearray()
+    addr = sig_ctx["caddr"]
+    if addr.startswith("0x"):
+        addr = addr[2:]
+    msg += bytearray.fromhex(addr)
+    msg.append(len(field_def["name"]))
+    for char in field_def["name"]:
+        msg.append(ord(char))
+    msg.append(len(display_name))
+    for char in display_name:
+        msg.append(ord(char))
+    sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
+    send_filtering_info(P1_FIELD_NAME, display_name, sig)
 
 def read_filtering_file(domain, message):
     data_json = None
@@ -378,7 +408,18 @@ def prepare_filtering(filtr_data, message):
                 return False
     return True
 
+def init_signature_context(domain):
+    global sig_ctx
+
+    with open(args.keypath, "r") as priv_file:
+        sig_ctx["key"] = SigningKey.from_pem(priv_file.read(), hashlib.sha256)
+        sig_ctx["caddr"] = domain["verifyingContract"]
+        return True
+    return False
+
 def main():
+    global sig_ctx
+
     with open(args.JSON_FILE, "r") as data:
         data_json = json.load(data)
         domain_typename = "EIP712Domain"
@@ -388,6 +429,8 @@ def main():
         message = data_json["message"]
 
         if args.filtering:
+            if not init_signature_context(domain):
+                return False
             filtr = read_filtering_file(domain, message)
 
         # send types definition
@@ -410,7 +453,7 @@ def main():
             if filtr and "name" in filtr:
                 send_filtering_contract_name(filtr["name"])
             else:
-                send_filtering_contract_name(domain.name)
+                send_filtering_contract_name(sig_ctx["domain"]["name"])
 
         # send message implementation
         send_struct_impl_name(message_typename)
@@ -430,6 +473,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--speculos", action="store_true")
     parser.add_argument("-d", "--device", action="store_true")
     parser.add_argument("-f", "--filtering", action="store_true")
+    parser.add_argument("-k", "--keypath", default="feeder/key/key.pem")
     args = parser.parse_args()
     if (args.speculos):
         trans = Transport(interface="tcp", server="127.0.0.1", port=9999, debug=True)

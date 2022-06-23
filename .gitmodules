@@ -1,0 +1,3 @@
+[submodule "feeder/key"]
+	path = feeder/key
+	url = git@github.com:apaillier-ledger/eip712_sig_test_key.git
