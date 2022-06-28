@@ -361,10 +361,8 @@ def send_filtering_contract_name(display_name):
     global sig_ctx
 
     msg = bytearray()
-    addr = sig_ctx["caddr"]
-    if addr.startswith("0x"):
-        addr = addr[2:]
-    msg += bytearray.fromhex(addr)
+    msg += sig_ctx["chainid"]
+    msg += sig_ctx["caddr"]
     msg.append(len(display_name))
     for char in display_name:
         msg.append(ord(char))
@@ -377,10 +375,8 @@ def send_filtering_field_name(display_name, field_def):
     global sig_ctx
 
     msg = bytearray()
-    addr = sig_ctx["caddr"]
-    if addr.startswith("0x"):
-        addr = addr[2:]
-    msg += bytearray.fromhex(addr)
+    msg += sig_ctx["chainid"]
+    msg += sig_ctx["caddr"]
     msg.append(len(field_def["name"]))
     for char in field_def["name"]:
         msg.append(ord(char))
@@ -413,7 +409,16 @@ def init_signature_context(domain):
 
     with open(args.keypath, "r") as priv_file:
         sig_ctx["key"] = SigningKey.from_pem(priv_file.read(), hashlib.sha256)
-        sig_ctx["caddr"] = domain["verifyingContract"]
+        caddr = domain["verifyingContract"]
+        if caddr.startswith("0x"):
+            caddr = caddr[2:]
+        sig_ctx["caddr"] = bytearray.fromhex(caddr)
+        chainid = domain["chainId"]
+        sig_ctx["chainid"] = bytearray()
+        for i in range(8):
+            sig_ctx["chainid"].append(chainid & (0xff << (i * 8)))
+        sig_ctx["chainid"].reverse()
+
         return True
     return False
 
