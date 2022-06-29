@@ -363,6 +363,7 @@ def send_filtering_contract_name(display_name):
     msg = bytearray()
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
+    msg += sig_ctx["schema_hash"]
     msg.append(len(display_name))
     for char in display_name:
         msg.append(ord(char))
@@ -377,6 +378,7 @@ def send_filtering_field_name(display_name, field_def):
     msg = bytearray()
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
+    msg += sig_ctx["schema_hash"]
     msg.append(len(field_def["name"]))
     for char in field_def["name"]:
         msg.append(ord(char))
@@ -394,6 +396,8 @@ def read_filtering_file(domain, message):
 
 # Convert the JSON paths into normal paths
 def prepare_filtering(filtr_data, message):
+    global filtering_paths
+
     if "fields" in filtr_data:
         for expr, name in filtr_data["fields"].items():
             found = False
@@ -404,7 +408,7 @@ def prepare_filtering(filtr_data, message):
                 return False
     return True
 
-def init_signature_context(domain):
+def init_signature_context(types, domain):
     global sig_ctx
 
     with open(args.keypath, "r") as priv_file:
@@ -418,6 +422,9 @@ def init_signature_context(domain):
         for i in range(8):
             sig_ctx["chainid"].append(chainid & (0xff << (i * 8)))
         sig_ctx["chainid"].reverse()
+        schema_str = json.dumps(types).replace(" ","")
+        schema_hash = hashlib.sha224(schema_str.encode())
+        sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())
 
         return True
     return False
@@ -434,7 +441,7 @@ def main():
         message = data_json["message"]
 
         if args.filtering:
-            if not init_signature_context(domain):
+            if not init_signature_context(types, domain):
                 return False
             filtr = read_filtering_file(domain, message)
 
