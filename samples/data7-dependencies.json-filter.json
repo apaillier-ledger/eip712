@@ -3,7 +3,7 @@
     "fields": {
         "contents": "Message",
         "from.name": "Sender",
-        "to.members[*].name": "Recipient",
-        "attach.list[*].name": "Attachment"
+        "to.members.[].name": "Recipient",
+        "attach.list.[].name": "Attachment"
     }
 }

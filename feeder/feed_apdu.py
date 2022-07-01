@@ -6,7 +6,6 @@ import sys
 import re
 from enum import IntEnum, auto
 from ledgercomm import Transport
-import jsonpath_ng
 import hashlib
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
@@ -32,7 +31,7 @@ P2_VERS_NEW     = 0x01
 # global variables
 parser = None
 trans = None
-filtering_paths = {}
+filtering_paths = None
 current_path = list()
 sig_ctx = {}
 
@@ -289,7 +288,7 @@ def send_struct_impl_field(value, field):
     if args.filtering:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filtering_field_name(filtering_paths[path], field)
+            send_filtering_field_name(filtering_paths[path])
 
     send_apdu(INS_STRUCT_IMPL, P1_COMPLETE, P2_FIELD, data_w_length)
 
@@ -304,7 +303,7 @@ def evaluate_field(structs, data, field, lvls_left, new_level = True):
         send_struct_impl_array(len(data))
         idx = 0
         for subdata in data:
-            current_path.append("[%d]" % (idx))
+            current_path.append("[]")
             if not evaluate_field(structs, subdata, field, lvls_left - 1, False):
                 return False
             current_path.pop()
@@ -364,7 +363,6 @@ def send_filtering_contract_name(display_name):
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
     msg += sig_ctx["schema_hash"]
-    msg.append(len(display_name))
     for char in display_name:
         msg.append(ord(char))
 
@@ -372,17 +370,17 @@ def send_filtering_contract_name(display_name):
     send_filtering_info(P1_CONTRACT_NAME, display_name, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_field_name(display_name, field_def):
+def send_filtering_field_name(display_name):
     global sig_ctx
+
+    path_str = ".".join(current_path)
 
     msg = bytearray()
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
     msg += sig_ctx["schema_hash"]
-    msg.append(len(field_def["name"]))
-    for char in field_def["name"]:
+    for char in path_str:
         msg.append(ord(char))
-    msg.append(len(display_name))
     for char in display_name:
         msg.append(ord(char))
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
@@ -394,19 +392,13 @@ def read_filtering_file(domain, message):
         data_json = json.load(data)
     return data_json
 
-# Convert the JSON paths into normal paths
 def prepare_filtering(filtr_data, message):
     global filtering_paths
 
     if "fields" in filtr_data:
-        for expr, name in filtr_data["fields"].items():
-            found = False
-            for match in jsonpath_ng.parse(expr).find(message):
-                found = True
-                filtering_paths[str(match.full_path)] = name
-            if not found:
-                return False
-    return True
+        filtering_paths = filtr_data["fields"]
+    else:
+        filtering_paths = {}
 
 def init_signature_context(types, domain):
     global sig_ctx
