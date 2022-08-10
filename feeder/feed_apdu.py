@@ -19,14 +19,14 @@ INS_STRUCT_IMPL = 0x1c
 INS_FILTERING   = 0x1e
 P1_COMPLETE     = 0x00
 P1_PARTIAL      = 0xff
-P1_ACTIVATE     = 0x00
-P1_CONTRACT_NAME= 0x0f
-P1_FIELD_NAME   = 0xff
 P2_NAME         = 0x00
 P2_ARRAY        = 0x0f
 P2_FIELD        = 0xff
 P2_VERS_LEGACY  = 0x00
 P2_VERS_NEW     = 0x01
+P2_FILT_ACTIVATE        = 0x00
+P2_FILT_CONTRACT_NAME   = 0x0f
+P2_FILT_FIELD_NAME      = 0xff
 
 # global variables
 parser = None
@@ -344,16 +344,16 @@ def send_sign():
     send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)
 
 def send_filtering_activate():
-    send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
+    send_apdu(INS_FILTERING, P1_COMPLETE, P2_FILT_ACTIVATE, bytearray())
 
-def send_filtering_info(p1, display_name, sig):
+def send_filtering_info(p2, display_name, sig):
     payload = bytearray()
     payload.append(len(display_name))
     for char in display_name:
         payload.append(ord(char))
     payload.append(len(sig))
     payload += sig
-    send_apdu(INS_FILTERING, p1, 0x00, payload)
+    send_apdu(INS_FILTERING, P1_COMPLETE, p2, payload)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_contract_name(display_name):
@@ -367,7 +367,7 @@ def send_filtering_contract_name(display_name):
         msg.append(ord(char))
 
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P1_CONTRACT_NAME, display_name, sig)
+    send_filtering_info(P2_FILT_CONTRACT_NAME, display_name, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_field_name(display_name):
@@ -384,7 +384,7 @@ def send_filtering_field_name(display_name):
     for char in display_name:
         msg.append(ord(char))
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P1_FIELD_NAME, display_name, sig)
+    send_filtering_info(P2_FILT_FIELD_NAME, display_name, sig)
 
 def read_filtering_file(domain, message):
     data_json = None
