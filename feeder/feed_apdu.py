@@ -346,17 +346,19 @@ def send_sign():
 def send_filtering_activate():
     send_apdu(INS_FILTERING, P1_COMPLETE, P2_FILT_ACTIVATE, bytearray())
 
-def send_filtering_info(p2, display_name, sig):
+def send_filtering_info(p2, display_name, filters_count, sig):
     payload = bytearray()
     payload.append(len(display_name))
     for char in display_name:
         payload.append(ord(char))
+    if p2 == P2_FILT_CONTRACT_NAME:
+        payload.append(filters_count)
     payload.append(len(sig))
     payload += sig
     send_apdu(INS_FILTERING, P1_COMPLETE, p2, payload)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_contract_name(display_name):
+def send_filtering_contract_name(display_name, filters_count: int):
     global sig_ctx
 
     msg = bytearray()
@@ -364,11 +366,12 @@ def send_filtering_contract_name(display_name):
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
     msg += sig_ctx["schema_hash"]
+    msg.append(filters_count)
     for char in display_name:
         msg.append(ord(char))
 
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P2_FILT_CONTRACT_NAME, display_name, sig)
+    send_filtering_info(P2_FILT_CONTRACT_NAME, display_name, filters_count, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_field_name(display_name):
@@ -386,7 +389,7 @@ def send_filtering_field_name(display_name):
     for char in display_name:
         msg.append(ord(char))
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P2_FILT_FIELD_NAME, display_name, sig)
+    send_filtering_info(P2_FILT_FIELD_NAME, display_name, None, sig)
 
 def read_filtering_file(domain, message):
     data_json = None
@@ -457,9 +460,9 @@ def main():
 
         if args.filtering:
             if filtr and "name" in filtr:
-                send_filtering_contract_name(filtr["name"])
+                send_filtering_contract_name(filtr["name"], len(filtering_paths))
             else:
-                send_filtering_contract_name(sig_ctx["domain"]["name"])
+                send_filtering_contract_name(sig_ctx["domain"]["name"], len(filtering_paths))
 
         # send message implementation
         send_struct_impl_name(message_typename)
