@@ -361,6 +361,7 @@ def send_filtering_info(p2, display_name, filters_count, sig):
 def send_filtering_contract_name(display_name, filters_count: int):
     global sig_ctx
 
+    #filters_count += 1 # force error in the app
     msg = bytearray()
     msg.append(183)
     msg += sig_ctx["chainid"]
