@@ -57,8 +57,9 @@ def send_apdu(ins, p1, p2, data):
     if args.speculos or args.device:
         print("> %.02x %.02x %.02x %.02x ... " % (CLA, ins, p1, p2), end="", flush=True)
         trans.send(cla=CLA, ins=ins, p1=p1, p2=p2, cdata=data)
-        trans.recv()
-        print("Done!")
+        sw, response = trans.recv()
+        print(hex(sw))
+        #print("Done!")
     else:
         sys.stdout.buffer.write(bytes([CLA, ins, p1, p2, len(data)]))
         sys.stdout.buffer.write(data)
@@ -365,8 +366,11 @@ def send_filtering_contract_name(display_name, filters_count: int):
     msg = bytearray()
     msg.append(183)
     msg += sig_ctx["chainid"]
+    #print("chain id = %s" % (sig_ctx["chainid"].hex()))
     msg += sig_ctx["caddr"]
+    #print("contract addr = %s" % (sig_ctx["caddr"].hex()))
     msg += sig_ctx["schema_hash"]
+    #print("schema hash = %s" % (sig_ctx["schema_hash"].hex()))
     msg.append(filters_count)
     for char in display_name:
         msg.append(ord(char))
@@ -406,9 +410,16 @@ def prepare_filtering(filtr_data, message):
     else:
         filtering_paths = {}
 
+def handle_optional_domain_values(domain):
+    if "chainId" not in domain.keys():
+        domain["chainId"] = 0
+    if "verifyingContract" not in domain.keys():
+        domain["verifyingContract"] = "0x0000000000000000000000000000000000000000"
+
 def init_signature_context(types, domain):
     global sig_ctx
 
+    handle_optional_domain_values(domain)
     with open(args.keypath, "r") as priv_file:
         sig_ctx["key"] = SigningKey.from_pem(priv_file.read(), hashlib.sha256)
         caddr = domain["verifyingContract"]
