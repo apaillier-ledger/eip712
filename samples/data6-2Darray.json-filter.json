@@ -1,0 +1,8 @@
+{
+    "name" : "R2D2",
+    "fields" : {
+        "depthy.[].[].[].[]" : "Depthy",
+        "document.[].[]" : "Document",
+        "proof.[].[]" : "Proof"
+    }
+}

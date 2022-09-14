@@ -2,22 +2,22 @@
     "types": {
         "EIP712Domain": [
             {
-                "type": "string",
-                "name": "name"
+                "name": "name",
+                "type": "string"
             }
         ],
         "LDPSigningRequest": [
             {
-                "type": "string[3][]",
-                "name": "document"
+                "name": "document",
+                "type": "string[3][]"
             },
             {
-                "type": "string[][4]",
-                "name": "proof"
+                "name": "proof",
+                "type": "string[][4]"
             },
             {
-                "type": "uint8[][][][]",
-                "name": "depthy"
+                "name": "depthy",
+                "type": "uint8[][][][]"
             }
         ]
     },
