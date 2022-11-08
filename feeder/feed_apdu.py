@@ -10,6 +10,7 @@ import hashlib
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
 import pdb
+import time
 
 # defines
 CLA             = 0xe0
@@ -58,6 +59,9 @@ def send_apdu(ins, p1, p2, data):
         print("> %.02x %.02x %.02x %.02x ... " % (CLA, ins, p1, p2), end="", flush=True)
         trans.send(cla=CLA, ins=ins, p1=p1, p2=p2, cdata=data)
         sw, response = trans.recv()
+        # To simulate really bad transport latency
+        #if ins == INS_STRUCT_IMPL:
+        #    time.sleep(2)
         print(hex(sw))
         #print("Done!")
     else:
@@ -336,6 +340,7 @@ def send_struct_impl(structs, data, structname):
     for f in struct:
         if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
             return False
+        #send_struct_def_name("EEaahh!") # To force crash
     return True
 
 def send_sign():
